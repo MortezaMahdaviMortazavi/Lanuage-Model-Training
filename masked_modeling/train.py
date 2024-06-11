@@ -38,7 +38,7 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Train a Masked Language Model")
     parser.add_argument('--data_path', type=str, required=True, help="Path to the data CSV file")
-    parser.add_argument('--target_column', type=str, required=True, help="Name of the target column in the data CSV file")
+    parser.add_argument('--target_column', type=str,default="text",required=False, help="Name of the target column in the data CSV file")
     parser.add_argument('--model_name', type=str, required=True, help="Name of the pretrained model")
     parser.add_argument('--output_dir', type=str, required=True, help="Directory to save the trained model")
     parser.add_argument("--logger_file",type=str , required=True ,help="Log everything in the training")
@@ -71,23 +71,41 @@ def setup_logging(log_file_path):
     )
 
 
-def load_and_prepare_data(path: str, target_column: str):
+def load_and_prepare_data(path: str, target_column: str = None):
     """
-    Load and prepare the dataset.
+    Load and prepare the dataset from a CSV or text file.
     
     Args:
-    path (str): Path to the data CSV file.
-    target_column (str): Name of the target column in the data CSV file.
+    path (str): Path to the data file (CSV or text).
+    target_column (str): Name of the target column in the data CSV file (ignored for text files).
 
     Returns:
     dataset (Dataset): HuggingFace Dataset object.
     """
-    logging.info(f"Loading data from {path} targeting column '{target_column}'")
-    df = pd.read_csv(path)
-    original_length = len(df)
-    df = df[df[target_column].apply(lambda x: isinstance(x, str) and len(x) >= 5 and x.strip() != "")]
-    logging.info(f"Filtered data from {original_length} to {len(df)} entries")
-    dataset = Dataset.from_pandas(df)
+    logging.info(f"Loading data from {path}")
+
+    # Determine the file extension
+    _, file_extension = os.path.splitext(path)
+
+    if file_extension.lower() == '.csv':
+        logging.info(f"Detected CSV file format. Targeting column '{target_column}'")
+        df = pd.read_csv(path)
+        original_length = len(df)
+        df = df[df[target_column].apply(lambda x: isinstance(x, str) and len(x) >= 5 and x.strip() != "")]
+        logging.info(f"Filtered data from {original_length} to {len(df)} entries")
+        dataset = Dataset.from_pandas(df)
+
+
+    elif file_extension.lower() == '.txt':
+        logging.info(f"Detected text file format.")
+        with open(path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+        lines = [line.strip() for line in lines if len(line.strip()) >= 5]
+        dataset = Dataset.from_dict({"text": lines})
+        logging.info(f"Loaded text dataset with {len(lines)} entries")
+    else:
+        raise ValueError("Unsupported file format. Please provide a CSV or text file.")
+    
     return dataset
 
 def load_tokenizer(model_name: str = "sbunlp/fabert"):
