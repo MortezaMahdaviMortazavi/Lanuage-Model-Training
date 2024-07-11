@@ -1,0 +1,27 @@
+python train_llama.py --output_dir llama3-summarization \
+  --logger_file loggers/training.log \
+  --num_train_epochs 5 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation 4 \
+  --gradient_checkpointing \
+  --device cuda:0 \
+  --optim adamw_8bit \
+  --logging_steps 5 \
+  --save_strategy epoch \
+  --learning_rate 0.0001 \
+  --fp16 \
+  --max_grad_norm 0.3 \
+  --warmup_ratio 0.03 \
+  --lr_scheduler_type constant \
+  --disable_tqdm \
+  --lora_dropout 0.05 \
+  --lora_alpha 16 \
+  --max_seq_length 1024 \
+  --r 16 \
+  --task_type CAUSAL_LM \
+  --bias none \
+  --model_name unsloth/llama-3-8b-bnb-4bit \
+  --dataset_path aya/aya-summarization/train.csv \
+  --input_column inputs \
+  --output_column targets \
+  --attn_implementation eager
