@@ -14,7 +14,7 @@ from accelerate import Accelerator
 from tqdm.auto import tqdm
 
 """
-python train_lightning.py --data_path combined_datasets/cleaned_sentences.csv --logger_file logs/training.log --target_column text --model_name sbunlp/fabert --output_dir MLP_TrainedModels --mlm_probability 0.2 --batch_size 4 --chunk_size 256 --num_train_epochs 30 --learning_rate 5e-5 --random_seed 42 --print_per_batch_num 100 --train_size 0.9 --test_size 0.1
+python train_lightning.py --data_path combined_datasets/cleaned_sentences.csv --logger_file logs/training.log --target_column text --model_name sbunlp/fabert --output_dir MLP_TrainedModels --mlm_probability 0.2 --batch_size 4 --chunk_size 256 --num_train_epochs 30 --learning_rate 5e-5 --random_seed 42 --print_per_batch_num 100 --train_size 0.9 --test_size 0.1 --accelerator gpu --train_strategy deepspeed_stage_2
 
 """
 
@@ -35,6 +35,8 @@ def parse_arguments():
     parser.add_argument("--print_per_batch_num", type=int, default=100, help="Print loss and track training after this number of batch")
     parser.add_argument('--train_size', type=float, default=0.9, help="Train size rate")
     parser.add_argument('--test_size', type=float, default=0.1, help="Test size rate")
+    parser.add_argument('--accelerator',type=str,default='cpu',help="Hardware type for training model : gpu , cpu , tpu")
+    parser.add_argument('--train_strategy',type=str,default='auto',help="Hardware strategy for training model")
     return parser.parse_args()
 
 def setup_logging(log_file_path):
@@ -335,7 +337,7 @@ if __name__ == "__main__":
     lightning_module = LightingTrainer(model, args)
     lightning_module._train_dataloader = train_dataloader
     lightning_module._val_dataloader = eval_dataloader
-    trainer = pl.Trainer(max_epochs=args.num_train_epochs,accelerator="cpu",strategy="auto")
+    trainer = pl.Trainer(max_epochs=args.num_train_epochs,accelerator=args.accelerator,strategy=args.train_strategy)
     trainer.fit(lightning_module)
     lightning_module.model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
